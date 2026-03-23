@@ -88,8 +88,8 @@ class HangulData {
     HangulWord(word: '책', emoji: '📖', consonant: 'ㅊ', syllable: '책', difficulty: 1),
     HangulWord(word: '치즈', emoji: '🧀', consonant: 'ㅊ', syllable: '치', difficulty: 2),
     HangulWord(word: '초콜릿', emoji: '🍫', consonant: 'ㅊ', syllable: '초', difficulty: 3),
-    HangulWord(word: '참외', emoji: '🥒', consonant: 'ㅊ', syllable: '참', difficulty: 2),
-    HangulWord(word: '축구공', emoji: '🥅', consonant: 'ㅊ', syllable: '축', difficulty: 2),
+    HangulWord(word: '체리', emoji: '🍒', consonant: 'ㅊ', syllable: '체', difficulty: 2),
+    HangulWord(word: '촛불', emoji: '🕯️', consonant: 'ㅊ', syllable: '촛', difficulty: 2),
 
     // ㅋ (4개)
     HangulWord(word: '코', emoji: '👃', consonant: 'ㅋ', syllable: '코', difficulty: 1),
