@@ -17,16 +17,32 @@ class AnswerFeedback extends StatelessWidget {
     this.isLast = false,
   });
 
+  /// 마지막 글자에 받침이 있으면 true
+  static bool _hasBatchim(String text) {
+    if (text.isEmpty) return false;
+    final last = text.runes.last;
+    // 한글 음절 범위: 0xAC00 ~ 0xD7A3
+    if (last < 0xAC00 || last > 0xD7A3) return false;
+    return (last - 0xAC00) % 28 != 0;
+  }
+
+  /// 받침 유무에 따라 은/는 반환
+  static String _eunNeun(String text) => _hasBatchim(text) ? '은' : '는';
+
+  /// 받침 유무에 따라 이에요/예요 반환
+  static String _ieyo(String text) => _hasBatchim(text) ? '이에요' : '예요';
+
   String get _explanation {
+    final q = problem.question;
     switch (problem.mode) {
       case GameMode.consonant:
-        return '${problem.question}은 ${problem.correctWord}! ${problem.correctEmoji}';
+        return '$q${_eunNeun(q)} ${problem.correctWord}! ${problem.correctEmoji}';
       case GameMode.syllable:
-        return '${problem.question}은 ${problem.correctWord}! ${problem.correctEmoji}';
+        return '$q${_eunNeun(q)} ${problem.correctWord}! ${problem.correctEmoji}';
       case GameMode.word:
-        return '${problem.question}은 ${problem.correctEmoji} 이에요!';
+        return '$q${_eunNeun(q)} ${problem.correctEmoji} ${_ieyo(q)}!';
       case GameMode.challenge:
-        return '정답은 ${problem.correctWord} ${problem.correctEmoji}!';
+        return '정답${_eunNeun("정답")} ${problem.correctWord} ${problem.correctEmoji}!';
     }
   }
 
