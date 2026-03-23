@@ -7,6 +7,7 @@ class EmojiCardGrid extends StatelessWidget {
   final List<EmojiChoice> choices;
   final EmojiChoice? selectedChoice;
   final bool enabled;
+  final bool hideWord;
   final ValueChanged<EmojiChoice> onSelect;
 
   const EmojiCardGrid({
@@ -15,6 +16,7 @@ class EmojiCardGrid extends StatelessWidget {
     required this.onSelect,
     this.selectedChoice,
     this.enabled = true,
+    this.hideWord = false,
   });
 
   @override
@@ -36,6 +38,7 @@ class EmojiCardGrid extends StatelessWidget {
           choice: choice,
           selected: selectedChoice,
           enabled: enabled,
+          hideWord: hideWord,
           onTap: () => onSelect(choice),
           delay: idx * 80,
         );
@@ -48,6 +51,7 @@ class _EmojiCard extends StatelessWidget {
   final EmojiChoice choice;
   final EmojiChoice? selected;
   final bool enabled;
+  final bool hideWord;
   final VoidCallback onTap;
   final int delay;
 
@@ -55,6 +59,7 @@ class _EmojiCard extends StatelessWidget {
     required this.choice,
     required this.selected,
     required this.enabled,
+    required this.hideWord,
     required this.onTap,
     required this.delay,
   });
@@ -108,17 +113,19 @@ class _EmojiCard extends StatelessWidget {
               choice.emoji,
               style: const TextStyle(fontSize: 48),
             ),
-            const SizedBox(height: 8),
-            Text(
-              choice.word,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: showResult && isSelected && !choice.isCorrect
-                    ? AppColors.coral
-                    : const Color(0xFF555555),
+            if (!hideWord || showResult) ...[
+              const SizedBox(height: 8),
+              Text(
+                choice.word,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: showResult && isSelected && !choice.isCorrect
+                      ? AppColors.coral
+                      : const Color(0xFF555555),
+                ),
               ),
-            ),
+            ],
             if (showResult && isSelected) ...[
               const SizedBox(height: 4),
               Text(

@@ -248,6 +248,7 @@ class _GameScreenState extends State<GameScreen> {
               choices: _currentProblem.choices,
               selectedChoice: _selectedChoice,
               enabled: !_showFeedback,
+              hideWord: _currentProblem.mode == GameMode.word,
               onSelect: _onCardSelected,
             ),
           ],

@@ -20,7 +20,7 @@ class HangulData {
     HangulWord(word: '개', emoji: '🐕', consonant: 'ㄱ', syllable: '개', difficulty: 1),
     HangulWord(word: '곰', emoji: '🐻', consonant: 'ㄱ', syllable: '곰', difficulty: 1),
     HangulWord(word: '공', emoji: '⚽', consonant: 'ㄱ', syllable: '공', difficulty: 1),
-    HangulWord(word: '꽃', emoji: '🌸', consonant: 'ㄱ', syllable: '꽃', difficulty: 2),
+    HangulWord(word: '거북이', emoji: '🐢', consonant: 'ㄱ', syllable: '거', difficulty: 2),
     HangulWord(word: '귤', emoji: '🍊', consonant: 'ㄱ', syllable: '귤', difficulty: 2),
     HangulWord(word: '기차', emoji: '🚂', consonant: 'ㄱ', syllable: '기', difficulty: 2),
 
@@ -34,7 +34,7 @@ class HangulData {
     // ㄷ (5개)
     HangulWord(word: '달', emoji: '🌙', consonant: 'ㄷ', syllable: '달', difficulty: 1),
     HangulWord(word: '돼지', emoji: '🐷', consonant: 'ㄷ', syllable: '돼', difficulty: 1),
-    HangulWord(word: '딸기', emoji: '🍓', consonant: 'ㄷ', syllable: '딸', difficulty: 2),
+    HangulWord(word: '다람쥐', emoji: '🐿️', consonant: 'ㄷ', syllable: '다', difficulty: 2),
     HangulWord(word: '도넛', emoji: '🍩', consonant: 'ㄷ', syllable: '도', difficulty: 2),
     HangulWord(word: '독수리', emoji: '🦅', consonant: 'ㄷ', syllable: '독', difficulty: 3),
 
