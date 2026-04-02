@@ -83,10 +83,13 @@ class _GameScreenState extends State<GameScreen> {
       }
     });
 
+    final showWordFeedback = _currentProblem.mode == GameMode.consonant ||
+        _currentProblem.mode == GameMode.syllable;
+
     Future.delayed(Duration(milliseconds: correct ? 800 : 1200), () {
       if (!mounted) return;
 
-      if (!correct) {
+      if (!correct || showWordFeedback) {
         setState(() {
           _showFeedback = false;
           _showAnswerFeedback = true;
@@ -241,6 +244,7 @@ class _GameScreenState extends State<GameScreen> {
               userAnswer: _selectedChoice!,
               onNext: _nextQuestion,
               isLast: _isLastQuestion,
+              isCorrect: _lastCorrect,
             ),
           ] else ...[
             EmojiCardGrid(
@@ -381,22 +385,6 @@ class _GameScreenState extends State<GameScreen> {
                   .slideY(begin: 0.3)
                   .then()
                   .fadeOut(delay: 400.ms),
-              if (_lastCorrect &&
-                  (_currentProblem.mode == GameMode.consonant ||
-                      _currentProblem.mode == GameMode.syllable))
-                Text(
-                  '${_currentProblem.correctWord}${_currentProblem.correctEmoji} → ${_currentProblem.choices.firstWhere((c) => c.isCorrect).emoji}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.sky,
-                  ),
-                )
-                    .animate()
-                    .fadeIn(delay: 200.ms)
-                    .slideY(begin: 0.3)
-                    .then()
-                    .fadeOut(delay: 300.ms),
             ],
           ),
         ),
