@@ -1,7 +1,7 @@
 name: hangyeol_hangul
 description: "한결이의 한글 놀이터"
 publish_to: 'none'
-version: 1.1.1+5
+version: 1.1.2+6
 
 environment:
   sdk: ^3.11.3
