@@ -47,7 +47,7 @@ enum GameMode {
       case GameMode.consonant:
         return '그림을 보고 첫소리 찾기';
       case GameMode.syllable:
-        return '글자를 보고 그림 찾기';
+        return '그림을 보고 첫 글자 찾기';
       case GameMode.word:
         return '단어를 보고 그림 찾기';
       case GameMode.challenge:

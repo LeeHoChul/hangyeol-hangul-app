@@ -284,7 +284,7 @@ class _ResultScreenState extends State<ResultScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      p.mode == GameMode.consonant
+                      (p.mode == GameMode.consonant || p.mode == GameMode.syllable)
                           ? '${p.correctEmoji} ${p.correctWord}'
                           : p.question,
                       style: const TextStyle(
@@ -299,7 +299,7 @@ class _ResultScreenState extends State<ResultScreen> {
                     const Text(' → ', style: TextStyle(fontSize: 16)),
                   ],
                   Text(
-                    p.mode == GameMode.consonant
+                    (p.mode == GameMode.consonant || p.mode == GameMode.syllable)
                         ? p.choices.firstWhere((c) => c.isCorrect).emoji
                         : '${p.correctEmoji} ${p.correctWord}',
                     style: const TextStyle(

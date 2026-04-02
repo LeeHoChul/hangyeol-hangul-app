@@ -39,7 +39,8 @@ class AnswerFeedback extends StatelessWidget {
         final correctConsonant = problem.choices.firstWhere((c) => c.isCorrect).emoji;
         return '${problem.correctWord}${_eunNeun(problem.correctWord)} $correctConsonant으로 시작해요! ${problem.correctEmoji}';
       case GameMode.syllable:
-        return '$q${_eunNeun(q)} ${problem.correctWord}! ${problem.correctEmoji}';
+        final correctSyllable = problem.choices.firstWhere((c) => c.isCorrect).emoji;
+        return '${problem.correctWord}${_eunNeun(problem.correctWord)} $correctSyllable로 시작해요! ${problem.correctEmoji}';
       case GameMode.word:
         return '$q${_eunNeun(q)} ${problem.correctEmoji} ${_ieyo(q)}!';
       case GameMode.challenge:

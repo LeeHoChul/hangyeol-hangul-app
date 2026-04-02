@@ -123,17 +123,34 @@ class ProblemGenerator {
     final candidates = HangulData.wordsForConsonant(consonant);
 
     final correctWord = _pickUnseen(candidates, seen);
-    final distractors = _pickDistractors(
-      correctWord,
-      choiceCount - 1,
-      excludeConsonant: consonant,
-    );
+    final correctSyllable = correctWord.syllable;
 
-    final choices = _buildChoices(correctWord, distractors);
+    // 교란 음절 선택 (다른 자음의 단어에서 첫 글자 가져오기)
+    final otherConsonants = consonants.where((c) => c != consonant).toList();
+    otherConsonants.shuffle(_random);
+    final distractorSyllables = <String>{};
+    for (final c in otherConsonants) {
+      if (distractorSyllables.length >= choiceCount - 1) break;
+      final words = HangulData.wordsForConsonant(c);
+      if (words.isNotEmpty) {
+        final syl = words[_random.nextInt(words.length)].syllable;
+        if (syl != correctSyllable) {
+          distractorSyllables.add(syl);
+        }
+      }
+    }
+
+    final choices = <EmojiChoice>[
+      EmojiChoice(emoji: correctSyllable, word: correctSyllable, isCorrect: true),
+      ...distractorSyllables.map(
+        (s) => EmojiChoice(emoji: s, word: s, isCorrect: false),
+      ),
+    ];
+    choices.shuffle(_random);
 
     return HangulProblem(
       mode: GameMode.syllable,
-      question: correctWord.syllable,
+      question: correctWord.emoji,
       correctEmoji: correctWord.emoji,
       correctWord: correctWord.word,
       choices: choices,
