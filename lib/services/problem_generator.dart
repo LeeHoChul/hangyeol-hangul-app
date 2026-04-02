@@ -94,17 +94,23 @@ class ProblemGenerator {
     final candidates = HangulData.wordsForConsonant(consonant);
 
     final correctWord = _pickUnseen(candidates, seen);
-    final distractors = _pickDistractors(
-      correctWord,
-      choiceCount - 1,
-      excludeConsonant: consonant,
-    );
 
-    final choices = _buildChoices(correctWord, distractors);
+    // 교란 자음 선택 (정답 자음 제외)
+    final otherConsonants = consonants.where((c) => c != consonant).toList();
+    otherConsonants.shuffle(_random);
+    final distractorConsonants = otherConsonants.take(choiceCount - 1).toList();
+
+    final choices = <EmojiChoice>[
+      EmojiChoice(emoji: consonant, word: consonant, isCorrect: true),
+      ...distractorConsonants.map(
+        (c) => EmojiChoice(emoji: c, word: c, isCorrect: false),
+      ),
+    ];
+    choices.shuffle(_random);
 
     return HangulProblem(
       mode: GameMode.consonant,
-      question: consonant,
+      question: correctWord.emoji,
       correctEmoji: correctWord.emoji,
       correctWord: correctWord.word,
       choices: choices,

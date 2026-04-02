@@ -36,7 +36,8 @@ class AnswerFeedback extends StatelessWidget {
     final q = problem.question;
     switch (problem.mode) {
       case GameMode.consonant:
-        return '$q${_eunNeun(q)} ${problem.correctWord}! ${problem.correctEmoji}';
+        final correctConsonant = problem.choices.firstWhere((c) => c.isCorrect).emoji;
+        return '${problem.correctWord}${_eunNeun(problem.correctWord)} $correctConsonant으로 시작해요! ${problem.correctEmoji}';
       case GameMode.syllable:
         return '$q${_eunNeun(q)} ${problem.correctWord}! ${problem.correctEmoji}';
       case GameMode.word:

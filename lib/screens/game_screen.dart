@@ -286,7 +286,7 @@ class _GameScreenState extends State<GameScreen> {
     String modeLabel;
     switch (_currentProblem.mode) {
       case GameMode.consonant:
-        modeLabel = '이 자음으로 시작하는 그림은?';
+        modeLabel = '이 그림은 어떤 자음으로 시작할까?';
       case GameMode.syllable:
         modeLabel = '이 글자로 시작하는 그림은?';
       case GameMode.word:
@@ -367,7 +367,9 @@ class _GameScreenState extends State<GameScreen> {
               Text(
                 _lastCorrect
                     ? _correctMessages[_currentIndex % _correctMessages.length]
-                    : '정답은 ${_currentProblem.correctWord} ${_currentProblem.correctEmoji}',
+                    : _currentProblem.mode == GameMode.consonant
+                        ? '${_currentProblem.correctWord}${_currentProblem.correctEmoji} → ${_currentProblem.choices.firstWhere((c) => c.isCorrect).emoji}'
+                        : '정답은 ${_currentProblem.correctWord} ${_currentProblem.correctEmoji}',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,

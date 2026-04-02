@@ -45,7 +45,7 @@ enum GameMode {
   String get description {
     switch (this) {
       case GameMode.consonant:
-        return '자음을 보고 그림 찾기';
+        return '그림을 보고 첫소리 찾기';
       case GameMode.syllable:
         return '글자를 보고 그림 찾기';
       case GameMode.word:
