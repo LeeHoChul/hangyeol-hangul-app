@@ -30,7 +30,12 @@ class StorageService {
     final newXp = totalXp + amount;
     await _prefs.setInt(_keyTotalXp, newXp);
 
-    final thresholds = [0, 15, 40, 80, 140, 220, 350];
+    const thresholds = [
+      0, 20, 50, 100, 180,
+      300, 470, 700, 1000, 1400,
+      1900, 2500, 3300, 4300, 5500,
+      7000, 9000, 11500, 15000, 20000,
+    ];
     var newLevel = 1;
     for (var i = 1; i < thresholds.length; i++) {
       if (newXp >= thresholds[i]) {
@@ -117,14 +122,17 @@ class StorageService {
     if (streak >= 7) {
       achievements.add(Achievement('일주일!', '🗓️', '7일 연속 플레이'));
     }
-    if (level >= 3) {
-      achievements.add(Achievement('한글 탐험가', '🔭', '레벨 3 달성'));
-    }
     if (level >= 5) {
-      achievements.add(Achievement('한글 마법사', '🧙', '레벨 5 달성'));
+      achievements.add(Achievement('한글 탐험가', '🔭', '레벨 5 달성'));
     }
-    if (level >= 7) {
-      achievements.add(Achievement('한글 박사', '🎓', '최고 레벨 달성'));
+    if (level >= 10) {
+      achievements.add(Achievement('한글 현자', '📜', '레벨 10 달성'));
+    }
+    if (level >= 15) {
+      achievements.add(Achievement('한글 챔피언', '🏆', '레벨 15 달성'));
+    }
+    if (level >= 20) {
+      achievements.add(Achievement('한글 신', '✨', '최고 레벨 달성'));
     }
 
     return achievements;
