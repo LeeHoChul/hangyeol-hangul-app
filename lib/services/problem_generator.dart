@@ -183,6 +183,8 @@ class ProblemGenerator {
     int count, {
     String? excludeConsonant,
   }) {
+    final wordLen = correct.word.length;
+
     var pool = HangulData.words
         .where((w) => w.word != correct.word && w.emoji != correct.emoji)
         .toList();
@@ -191,8 +193,18 @@ class ProblemGenerator {
       pool = pool.where((w) => w.consonant != excludeConsonant).toList();
     }
 
-    pool.shuffle(_random);
-    return pool.take(count).toList();
+    // 같은 글자수 단어 우선
+    final sameLen = pool.where((w) => w.word.length == wordLen).toList();
+    sameLen.shuffle(_random);
+
+    if (sameLen.length >= count) {
+      return sameLen.take(count).toList();
+    }
+
+    // 같은 글자수가 부족하면 나머지에서 채움
+    final rest = pool.where((w) => w.word.length != wordLen).toList();
+    rest.shuffle(_random);
+    return [...sameLen, ...rest.take(count - sameLen.length)];
   }
 
   List<EmojiChoice> _buildChoices(HangulWord correct, List<HangulWord> distractors) {
