@@ -4,6 +4,7 @@ import '../theme.dart';
 import '../models/hangul_problem.dart';
 import '../services/problem_generator.dart';
 import '../services/storage_service.dart';
+import '../services/tts_service.dart';
 import '../widgets/xp_bar.dart';
 import 'game_screen.dart';
 
@@ -59,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader() {
+    final soundOn = widget.storage.soundEnabled;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -78,7 +80,19 @@ class _HomeScreenState extends State<HomeScreen> {
             color: AppColors.sky.withValues(alpha: 0.8),
           ),
         ),
-        const SizedBox(width: 48),
+        IconButton(
+          onPressed: () {
+            final next = !soundOn;
+            widget.storage.setSoundEnabled(next);
+            TtsService.instance.muted = !next;
+            if (!next) TtsService.instance.stop();
+            setState(() {});
+          },
+          icon: Icon(
+            soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+            color: AppColors.sky,
+          ),
+        ),
       ],
     );
   }
@@ -134,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildModeGrid() {
+    // 음운 인식 발달 순서(음절 → 음소 → 조합 → 받침 → 단어)대로 배치
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -143,15 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
       childAspectRatio: 1.3,
       children: [
         _ModeCard(
-          mode: GameMode.consonant,
-          bgGradient: const LinearGradient(
-            colors: [Color(0xFFE1F5FE), Color(0xFFB3E5FC)],
-          ),
-          borderColor: AppColors.sky,
-          onTap: () => setState(() => _selectedMode = GameMode.consonant),
-        ),
-        _ModeCard(
           mode: GameMode.syllable,
+          step: 1,
           bgGradient: const LinearGradient(
             colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
           ),
@@ -159,11 +167,48 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: () => setState(() => _selectedMode = GameMode.syllable),
         ),
         _ModeCard(
-          mode: GameMode.word,
+          mode: GameMode.vowel,
+          step: 2,
+          bgGradient: const LinearGradient(
+            colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+          ),
+          borderColor: AppColors.orange,
+          onTap: () => setState(() => _selectedMode = GameMode.vowel),
+        ),
+        _ModeCard(
+          mode: GameMode.consonant,
+          step: 3,
+          bgGradient: const LinearGradient(
+            colors: [Color(0xFFE1F5FE), Color(0xFFB3E5FC)],
+          ),
+          borderColor: AppColors.sky,
+          onTap: () => setState(() => _selectedMode = GameMode.consonant),
+        ),
+        _ModeCard(
+          mode: GameMode.combine,
+          step: 4,
+          bgGradient: const LinearGradient(
+            colors: [Color(0xFFFCE4EC), Color(0xFFF8BBD0)],
+          ),
+          borderColor: AppColors.coral,
+          onTap: () => setState(() => _selectedMode = GameMode.combine),
+        ),
+        _ModeCard(
+          mode: GameMode.batchim,
+          step: 5,
           bgGradient: const LinearGradient(
             colors: [Color(0xFFF3E5F5), Color(0xFFE1BEE7)],
           ),
           borderColor: AppColors.purple,
+          onTap: () => setState(() => _selectedMode = GameMode.batchim),
+        ),
+        _ModeCard(
+          mode: GameMode.word,
+          step: 6,
+          bgGradient: const LinearGradient(
+            colors: [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
+          ),
+          borderColor: const Color(0xFF4DB6AC),
           onTap: () => setState(() => _selectedMode = GameMode.word),
         ),
         _ModeCard(
@@ -181,6 +226,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDifficultySelection() {
     final generator = ProblemGenerator();
     final levels = generator.levelsForMode(_selectedMode!);
+    final recommended = widget.storage.recommendedLevel(
+      _selectedMode!.name,
+      levels.length,
+    );
 
     return Column(
       children: [
@@ -204,6 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return _DifficultyCard(
             difficulty: dl,
             delay: idx * 100,
+            recommended: dl.level == recommended,
             onTap: () => _startGame(dl.level),
           );
         }),
@@ -305,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _creditRow('귀여움', '다솜이'),
                 const SizedBox(height: 6),
                 Text(
-                  'v1.0.0',
+                  'v1.4.0',
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.grey.shade400,
@@ -371,12 +421,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _ModeCard extends StatelessWidget {
   final GameMode mode;
+  final int? step;
   final LinearGradient bgGradient;
   final Color borderColor;
   final VoidCallback onTap;
 
   const _ModeCard({
     required this.mode,
+    this.step,
     required this.bgGradient,
     required this.borderColor,
     required this.onTap,
@@ -399,24 +451,52 @@ class _ModeCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Text(mode.emoji2, style: const TextStyle(fontSize: 32)),
-            const SizedBox(height: 6),
-            Text(
-              mode.label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF555555),
+            if (step != null)
+              Positioned(
+                top: 8,
+                left: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$step단계',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF777777),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            Text(
-              mode.description,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade500,
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(mode.emoji2, style: const TextStyle(fontSize: 32)),
+                  const SizedBox(height: 6),
+                  Text(
+                    mode.label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF555555),
+                    ),
+                  ),
+                  Text(
+                    mode.description,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -433,11 +513,13 @@ class _ModeCard extends StatelessWidget {
 class _DifficultyCard extends StatelessWidget {
   final DifficultyLevel difficulty;
   final int delay;
+  final bool recommended;
   final VoidCallback onTap;
 
   const _DifficultyCard({
     required this.difficulty,
     required this.delay,
+    this.recommended = false,
     required this.onTap,
   });
 
@@ -452,6 +534,9 @@ class _DifficultyCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: recommended
+              ? Border.all(color: AppColors.yellow, width: 2)
+              : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
@@ -468,13 +553,38 @@ class _DifficultyCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    difficulty.name,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF333333),
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          difficulty.name,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                      ),
+                      if (recommended) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.yellow.withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            '추천 ⭐',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.orange,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   Text(
                     difficulty.description,

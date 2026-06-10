@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../theme.dart';
 import '../models/hangul_problem.dart';
+import '../services/problem_generator.dart';
 import '../services/storage_service.dart';
 import '../widgets/celebration.dart';
 import 'game_screen.dart';
@@ -36,8 +37,17 @@ class _ResultScreenState extends State<ResultScreen> {
     await widget.storage.recordGame(
       correctCount: r.score,
       maxGameStreak: r.maxStreak,
-      isPerfect: r.accuracy >= 1.0,
+      // 짧은 복습 라운드 만점은 만점 업적에 세지 않는다
+      isPerfect: !r.isRetry && r.accuracy >= 1.0,
     );
+
+    if (!r.isRetry) {
+      await widget.storage.recordLevelAccuracy(
+        r.mode.name,
+        r.difficultyLevel,
+        r.accuracy,
+      );
+    }
 
     final leveledUp = await widget.storage.addXp(r.xpEarned);
 
@@ -284,9 +294,9 @@ class _ResultScreenState extends State<ResultScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      (p.mode == GameMode.consonant || p.mode == GameMode.syllable)
-                          ? '${p.correctEmoji} ${p.correctWord}'
-                          : p.question,
+                      p.mode == GameMode.word
+                          ? p.question
+                          : '${p.correctEmoji} ${p.correctWord}',
                       style: const TextStyle(
                           fontSize: 18, color: Color(0xFF555555)),
                     ),
@@ -299,9 +309,9 @@ class _ResultScreenState extends State<ResultScreen> {
                     const Text(' → ', style: TextStyle(fontSize: 16)),
                   ],
                   Text(
-                    (p.mode == GameMode.consonant || p.mode == GameMode.syllable)
-                        ? p.choices.firstWhere((c) => c.isCorrect).emoji
-                        : '${p.correctEmoji} ${p.correctWord}',
+                    p.mode == GameMode.word
+                        ? '${p.correctEmoji} ${p.correctWord}'
+                        : p.choices.firstWhere((c) => c.isCorrect).emoji,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -318,30 +328,99 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildButtons() {
+    final r = widget.result;
+    final maxLevel = ProblemGenerator().levelsForMode(r.mode).length;
+    final suggestNext =
+        !r.isRetry && r.accuracy >= 0.8 && r.difficultyLevel < maxLevel;
+    final wrongProblems =
+        r.wrongIndices.map((i) => r.problems[i]).toList();
+
+    void startGame({
+      required int level,
+      List<HangulProblem>? presetProblems,
+      bool isRetry = false,
+    }) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => GameScreen(
+            mode: r.mode,
+            difficultyLevel: level,
+            storage: widget.storage,
+            presetProblems: presetProblems,
+            isRetry: isRetry,
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
+        // 인출 연습: 틀린 문제는 보기만 하는 것보다 다시 풀어야 기억에 남는다
+        if (wrongProblems.isNotEmpty) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => startGame(
+                level: r.difficultyLevel,
+                presetProblems: wrongProblems,
+                isRetry: true,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.coral,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text('틀린 문제만 다시 풀기 ✍️ (${wrongProblems.length}문제)',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (suggestNext) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => startGame(level: r.difficultyLevel + 1),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.sky,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('잘하니까 다음 난이도 도전! 🚀',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => GameScreen(
-                    mode: widget.result.mode,
-                    difficultyLevel: widget.result.difficultyLevel,
-                    storage: widget.storage,
+          child: suggestNext || wrongProblems.isNotEmpty
+              ? OutlinedButton(
+                  onPressed: () => startGame(level: r.difficultyLevel),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.sky,
+                    side: const BorderSide(color: AppColors.sky, width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
                   ),
+                  child: const Text('다시 도전! 💪',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                )
+              : ElevatedButton(
+                  onPressed: () => startGame(level: r.difficultyLevel),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.sky,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('다시 도전! 💪',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                 ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.sky,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text('다시 도전! 💪',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          ),
         ),
         const SizedBox(height: 10),
         SizedBox(

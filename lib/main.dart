@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme.dart';
 import 'services/storage_service.dart';
+import 'services/tts_service.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -17,6 +20,10 @@ void main() async {
 
   final storage = StorageService();
   await storage.init();
+
+  // TTS는 백그라운드에서 초기화 — 실패해도 게임은 정상 동작
+  TtsService.instance.muted = !storage.soundEnabled;
+  unawaited(TtsService.instance.init());
 
   runApp(HangyeolHangulApp(storage: storage));
 }
