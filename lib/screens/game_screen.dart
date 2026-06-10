@@ -1,9 +1,12 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../theme.dart';
 import '../models/hangul_problem.dart';
 import '../services/problem_generator.dart';
 import '../services/storage_service.dart';
+import '../services/tts_service.dart';
 import '../widgets/emoji_card_grid.dart';
 import '../widgets/answer_feedback.dart';
 import '../widgets/xp_bar.dart';
@@ -14,11 +17,17 @@ class GameScreen extends StatefulWidget {
   final int difficultyLevel;
   final StorageService storage;
 
+  /// 지정하면 새로 출제하지 않고 이 문제들을 다시 푼다 (틀린 문제 복습용)
+  final List<HangulProblem>? presetProblems;
+  final bool isRetry;
+
   const GameScreen({
     super.key,
     required this.mode,
     required this.difficultyLevel,
     required this.storage,
+    this.presetProblems,
+    this.isRetry = false,
   });
 
   @override
@@ -28,6 +37,8 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late List<HangulProblem> _problems;
   final List<EmojiChoice?> _userAnswers = [];
+  final _rng = Random();
+  final _tts = TtsService.instance;
   int _currentIndex = 0;
   int _score = 0;
   int _streak = 0;
@@ -36,6 +47,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _showFeedback = false;
   bool _lastCorrect = false;
   bool _showAnswerFeedback = false;
+  bool _soundOn = true;
   late DateTime _startTime;
 
   final _correctMessages = const [
@@ -52,16 +64,44 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    _problems = ProblemGenerator().generateRound(
-      widget.mode,
-      widget.difficultyLevel,
-    );
+    final preset = widget.presetProblems;
+    if (preset != null && preset.isNotEmpty) {
+      _problems = preset.map((p) => p.withShuffledChoices(_rng)).toList()
+        ..shuffle(_rng);
+    } else {
+      _problems = ProblemGenerator(mastery: widget.storage.mastery)
+          .generateRound(widget.mode, widget.difficultyLevel);
+    }
     _startTime = DateTime.now();
+    _soundOn = widget.storage.soundEnabled;
+    _tts.muted = !_soundOn;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _speakPrompt());
+  }
+
+  @override
+  void dispose() {
+    _tts.stop();
+    super.dispose();
   }
 
   HangulProblem get _currentProblem => _problems[_currentIndex];
   double get _progress => _currentIndex / _problems.length;
   bool get _isLastQuestion => _currentIndex >= _problems.length - 1;
+
+  void _speakPrompt() {
+    _tts.speak(_currentProblem.spokenPrompt);
+  }
+
+  void _toggleSound() {
+    setState(() => _soundOn = !_soundOn);
+    _tts.muted = !_soundOn;
+    if (!_soundOn) {
+      _tts.stop();
+    } else {
+      _speakPrompt();
+    }
+    widget.storage.setSoundEnabled(_soundOn);
+  }
 
   void _onCardSelected(EmojiChoice choice) {
     if (_showFeedback || _showAnswerFeedback) return;
@@ -83,8 +123,19 @@ class _GameScreenState extends State<GameScreen> {
       }
     });
 
-    final showWordFeedback = _currentProblem.mode == GameMode.consonant ||
-        _currentProblem.mode == GameMode.syllable;
+    // 글자별·단어별 숙련도 기록 → 틀린 항목은 다음에 더 자주 나온다
+    for (final key in _currentProblem.masteryKeys) {
+      widget.storage.mastery.record(key, correct);
+    }
+
+    _tts.speak(
+      correct
+          ? '딩동댕! ${_currentProblem.spokenAnswer}'
+          : '아쉬워요. ${_currentProblem.spokenAnswer}',
+    );
+
+    // 단어 찾기를 제외한 모든 모드는 정답 후 단어 카드로 한 번 더 학습
+    final showWordFeedback = _currentProblem.mode != GameMode.word;
 
     Future.delayed(Duration(milliseconds: correct ? 800 : 1200), () {
       if (!mounted) return;
@@ -112,6 +163,7 @@ class _GameScreenState extends State<GameScreen> {
       _showFeedback = false;
       _showAnswerFeedback = false;
     });
+    _speakPrompt();
   }
 
   void _finishGame() {
@@ -124,6 +176,7 @@ class _GameScreenState extends State<GameScreen> {
       score: _score,
       maxStreak: _maxStreak,
       elapsed: elapsed,
+      isRetry: widget.isRetry,
     );
 
     Navigator.of(context).pushReplacement(
@@ -182,7 +235,13 @@ class _GameScreenState extends State<GameScreen> {
               compact: true,
             ),
           ),
-          const SizedBox(width: 8),
+          IconButton(
+            onPressed: _toggleSound,
+            icon: Icon(
+              _soundOn ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+              color: AppColors.sky,
+            ),
+          ),
           _buildStat('맞힌 수', '$_score'),
           const SizedBox(width: 12),
           _buildStat('연속', '$_streak🔥'),
@@ -289,58 +348,80 @@ class _GameScreenState extends State<GameScreen> {
   Widget _buildProblemCard() {
     String modeLabel;
     switch (_currentProblem.mode) {
-      case GameMode.consonant:
-        modeLabel = '이 그림은 어떤 자음으로 시작할까?';
       case GameMode.syllable:
         modeLabel = '이 그림의 첫 글자는 뭘까?';
+      case GameMode.vowel:
+        modeLabel = '이 그림의 첫 모음(홀소리)은 뭘까?';
+      case GameMode.consonant:
+        modeLabel = '이 그림은 어떤 자음으로 시작할까?';
+      case GameMode.combine:
+        modeLabel = '글자를 합치면 뭐가 될까?';
+      case GameMode.batchim:
+        modeLabel = '이 글자의 받침은 뭘까?';
       case GameMode.word:
         modeLabel = '이 단어의 그림은?';
       case GameMode.challenge:
         modeLabel = '맞는 그림을 골라봐!';
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.sky.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            '${_currentIndex + 1}번 문제',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade400,
-              fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: _speakPrompt,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.sky.withValues(alpha: 0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            modeLabel,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
+          ],
+        ),
+        child: Column(
+          children: [
+            Text(
+              '${_currentIndex + 1}번 문제',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade400,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            _currentProblem.question,
-            style: const TextStyle(
-              fontSize: 52,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF333333),
+            const SizedBox(height: 6),
+            Text(
+              modeLabel,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade500,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                _currentProblem.question,
+                style: const TextStyle(
+                  fontSize: 52,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF333333),
+                ),
+              ),
+            ),
+            if (_soundOn) ...[
+              const SizedBox(height: 8),
+              Text(
+                '🔊 누르면 다시 들려요',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade400,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     )
         .animate(key: ValueKey(_currentIndex))
@@ -371,9 +452,8 @@ class _GameScreenState extends State<GameScreen> {
               Text(
                 _lastCorrect
                     ? _correctMessages[_currentIndex % _correctMessages.length]
-                    : (_currentProblem.mode == GameMode.consonant || _currentProblem.mode == GameMode.syllable)
-                        ? '${_currentProblem.correctWord}${_currentProblem.correctEmoji} → ${_currentProblem.choices.firstWhere((c) => c.isCorrect).emoji}'
-                        : '정답은 ${_currentProblem.correctWord} ${_currentProblem.correctEmoji}',
+                    : _currentProblem.explanation,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,

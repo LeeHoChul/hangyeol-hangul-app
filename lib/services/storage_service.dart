@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'mastery_service.dart';
 
 class StorageService {
   static const _keyTotalXp = 'total_xp';
@@ -9,11 +10,14 @@ class StorageService {
   static const _keyTotalCorrect = 'total_correct';
   static const _keyBestStreak = 'best_streak';
   static const _keyPerfectGames = 'perfect_games';
+  static const _keySoundEnabled = 'sound_enabled';
 
   late SharedPreferences _prefs;
+  late MasteryService mastery;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    mastery = MasteryService(_prefs);
   }
 
   int get totalXp => _prefs.getInt(_keyTotalXp) ?? 0;
@@ -24,7 +28,42 @@ class StorageService {
   int get bestStreak => _prefs.getInt(_keyBestStreak) ?? 0;
   int get perfectGames => _prefs.getInt(_keyPerfectGames) ?? 0;
 
+  bool get soundEnabled => _prefs.getBool(_keySoundEnabled) ?? true;
+
+  Future<void> setSoundEnabled(bool value) =>
+      _prefs.setBool(_keySoundEnabled, value);
+
   String? get lastPlayDate => _prefs.getString(_keyLastPlay);
+
+  // ---- 난이도별 최고 정답률 (자동 난이도 추천용) ----
+
+  String _levelKey(String modeName, int level) => 'level_best:$modeName:$level';
+
+  double bestAccuracy(String modeName, int level) =>
+      _prefs.getDouble(_levelKey(modeName, level)) ?? 0;
+
+  Future<void> recordLevelAccuracy(
+    String modeName,
+    int level,
+    double accuracy,
+  ) async {
+    if (accuracy > bestAccuracy(modeName, level)) {
+      await _prefs.setDouble(_levelKey(modeName, level), accuracy);
+    }
+  }
+
+  /// 80% 이상 통과한 가장 높은 난이도의 다음 단계를 추천
+  int recommendedLevel(String modeName, int maxLevel) {
+    var recommended = 1;
+    for (var l = 1; l < maxLevel; l++) {
+      if (bestAccuracy(modeName, l) >= 0.8) {
+        recommended = l + 1;
+      } else {
+        break;
+      }
+    }
+    return recommended;
+  }
 
   Future<bool> addXp(int amount) async {
     final newXp = totalXp + amount;

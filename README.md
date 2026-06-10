@@ -1,17 +1,40 @@
-# hangyeol_hangul
+# 한결이의 한글 놀이터 🎈
 
-A new Flutter project.
+아이가 한글을 쉽고 재밌게 깨치도록 만든 Flutter 학습 게임 앱.
 
-## Getting Started
+## 놀이 모드 (권장 학습 순서)
 
-This project is a starting point for a Flutter application.
+음운 인식 발달 순서(음절 → 음소 → 조합 → 받침 → 단어)를 따라 배치되어 있습니다.
 
-A few resources to get you started if this is your first Flutter project:
+| 단계 | 모드 | 내용 |
+|------|------|------|
+| 1 | 낱글자 놀이 | 그림을 보고 첫 글자 찾기 (음절 인식) |
+| 2 | 모음 놀이 | 그림을 보고 첫 모음 찾기 |
+| 3 | 자음 놀이 | 그림을 보고 첫소리(자음) 찾기 |
+| 4 | 글자 만들기 | 자음+모음(+받침)을 합쳐 글자 조합 원리 익히기 |
+| 5 | 받침 놀이 | 글자 속 받침 찾기 |
+| 6 | 단어 놀이 | 단어를 읽고 맞는 그림 찾기 |
+| - | 도전 모드 | 모든 모드 혼합 |
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## 학습 설계 원리
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **소리 중심 학습(TTS)**: 모든 문제와 정답을 한국어 음성으로 읽어 주어
+  글자↔소리(자소-음소) 대응을 만들어 줍니다. 문제 카드를 누르면 다시 들려줍니다.
+- **간격 반복(라이트너 박스)**: 글자·단어별 정오답을 기록해서
+  틀린 항목은 자주, 익힌 항목은 드물게 다시 나옵니다 (`MasteryService`).
+- **인출 연습**: 결과 화면에서 틀린 문제만 골라 다시 풀 수 있습니다.
+- **변별 학습**: 높은 난이도에서는 모양·소리가 비슷한 글자(ㄱ↔ㅋ, ㅂ↔ㅁ)와
+  첫 글자가 같은 단어(사과↔사자)를 보기로 함께 내어 끝까지 읽게 합니다.
+- **받침 기반 난이도**: 받침 없는 짧은 단어부터 시작해 점차 어려워집니다.
+- **자동 난이도 추천**: 정답률 80% 이상이면 다음 난이도를 추천합니다.
+- **동기 부여**: XP·20레벨·연속 플레이 스트릭·업적·별점·축하 연출.
+
+## 개발
+
+```bash
+flutter pub get
+flutter run
+```
+
+- 음성은 기기의 한국어 TTS 엔진을 사용합니다 (`flutter_tts`, ko-KR).
+  엔진이 없는 기기에서도 게임은 정상 동작하며, 홈/게임 화면의 🔊 버튼으로 켜고 끌 수 있습니다.

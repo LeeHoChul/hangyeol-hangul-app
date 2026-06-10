@@ -113,7 +113,8 @@ class _EmojiCard extends StatelessWidget {
               choice.emoji,
               style: const TextStyle(fontSize: 48),
             ),
-            if (!hideWord || showResult) ...[
+            // 글자 카드(emoji == word)는 같은 글자를 두 번 보여주지 않는다
+            if ((!hideWord || showResult) && choice.word != choice.emoji) ...[
               const SizedBox(height: 8),
               Text(
                 choice.word,
